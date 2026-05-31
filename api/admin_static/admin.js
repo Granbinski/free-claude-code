@@ -149,9 +149,7 @@ function setActiveView(viewId, { scroll = false } = {}) {
   });
 
   document.querySelectorAll(".admin-view").forEach((view) => {
-    const selected = view.dataset.view === activeView.id;
-    view.classList.toggle("active", selected);
-    view.hidden = !selected;
+    view.hidden = view.dataset.view !== activeView.id;
   });
 
   if (scroll) {

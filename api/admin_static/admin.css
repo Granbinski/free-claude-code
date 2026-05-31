@@ -115,7 +115,6 @@ button, input, select, textarea { font: inherit; }
   border-right: 1px solid var(--line);
   background: var(--canvas-soft);
   padding: 24px 20px;
-  overflow: hidden;
 }
 
 .brand {
@@ -202,6 +201,11 @@ button, input, select, textarea { font: inherit; }
   color: var(--ink);
 }
 
+.nav-link:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 .nav-link.active {
   background: var(--accent);
   color: var(--on-primary);
@@ -259,6 +263,11 @@ button, input, select, textarea { font: inherit; }
 .status-pill.error {
   color: var(--error);
   background: rgba(220, 38, 38, 0.07);
+}
+
+.status-pill.neutral {
+  color: var(--muted);
+  background: var(--surface-strong);
 }
 
 /* ── Views ────────────────────────────────────────────── */
@@ -413,6 +422,22 @@ button, input, select, textarea { font: inherit; }
   background: var(--line);
 }
 
+.test-button:disabled {
+  cursor: not-allowed;
+  background: var(--surface-strong);
+  color: var(--muted-soft);
+}
+
+/* ── Focus visible — all interactive controls ─────────── */
+
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.ghost-button:focus-visible,
+.test-button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 /* ── Form Sections ────────────────────────────────────── */
 
 .form-sections {
@@ -490,8 +515,14 @@ button, input, select, textarea { font: inherit; }
   transition: border-color 150ms ease;
 }
 
+.field select:focus {
+  border-color: var(--ink);
+  border-width: 2px;
+  outline: none;
+  box-shadow: none;
+}
+
 .field input:focus,
-.field select:focus,
 .field textarea:focus {
   border-color: var(--ink);
   border-width: 2px;
@@ -511,6 +542,12 @@ button, input, select, textarea { font: inherit; }
   background: var(--surface-strong);
   color: var(--muted-soft);
   border-color: var(--line);
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }
 
 .field input[type="checkbox"] {
