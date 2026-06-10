@@ -95,6 +95,29 @@ def test_create_message_stream(client: TestClient):
     assert b"message_start" in content or b"event:" in content
 
 
+def test_create_message_accepts_inline_system_message(client: TestClient):
+    """Claude-compatible clients sometimes send system as a message role."""
+    mock_provider.stream_response = _mock_stream_response
+    _stream_response_calls.clear()
+    payload = {
+        "model": "claude-3-sonnet",
+        "messages": [
+            {"role": "system", "content": "project rules"},
+            {"role": "user", "content": "Hi"},
+        ],
+        "max_tokens": 100,
+        "stream": True,
+    }
+
+    response = client.post("/v1/messages", json=payload)
+
+    assert response.status_code == 200
+    assert len(_stream_response_calls) == 1
+    routed_request = _stream_response_calls[0][0][0]
+    assert routed_request.system == "project rules"
+    assert [message.role for message in routed_request.messages] == ["user"]
+
+
 def test_model_mapping(client: TestClient):
     # Test Haiku mapping
     _stream_response_calls.clear()

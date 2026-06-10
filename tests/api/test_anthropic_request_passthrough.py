@@ -9,6 +9,7 @@ from api.models.anthropic import (
     Message,
     MessagesRequest,
     SystemContent,
+    TokenCountRequest,
     Tool,
 )
 from config.constants import ANTHROPIC_DEFAULT_MAX_OUTPUT_TOKENS
@@ -123,6 +124,79 @@ def test_build_base_native_body_drops_unknown_top_level_client_hints() -> None:
     )
     assert "reasoning_effort" not in body
     assert "unknown_client_hint" not in body
+
+
+def test_inline_system_message_is_promoted_before_validation() -> None:
+    raw = {
+        "model": "m",
+        "messages": [
+            {"role": "user", "content": "hi"},
+            {"role": "system", "content": "follow project rules"},
+            {"role": "assistant", "content": "ok"},
+        ],
+    }
+
+    req = MessagesRequest.model_validate(raw)
+
+    assert [message.role for message in req.messages] == ["user", "assistant"]
+    assert req.system == "follow project rules"
+
+
+def test_inline_system_message_merges_with_existing_system() -> None:
+    raw = {
+        "model": "m",
+        "system": "base rules",
+        "messages": [
+            {"role": "system", "content": "session rules"},
+            {"role": "user", "content": "hi"},
+        ],
+    }
+
+    req = MessagesRequest.model_validate(raw)
+
+    assert [message.role for message in req.messages] == ["user"]
+    assert req.system == "base rules\n\nsession rules"
+
+
+def test_inline_system_text_blocks_preserve_metadata() -> None:
+    raw = {
+        "model": "m",
+        "messages": [
+            {
+                "role": "system",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "cached rules",
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ],
+            },
+            {"role": "user", "content": "hi"},
+        ],
+    }
+
+    req = MessagesRequest.model_validate(raw)
+
+    assert [message.role for message in req.messages] == ["user"]
+    assert isinstance(req.system, list)
+    assert isinstance(req.system[0], SystemContent)
+    assert req.system[0].model_dump()["cache_control"] == {"type": "ephemeral"}
+
+
+def test_token_count_request_promotes_inline_system_message() -> None:
+    raw = {
+        "model": "m",
+        "messages": [
+            {"role": "system", "content": "count these rules too"},
+            {"role": "user", "content": "hi"},
+        ],
+    }
+
+    req = TokenCountRequest.model_validate(raw)
+
+    assert [message.role for message in req.messages] == ["user"]
+    assert req.system == "count these rules too"
 
 
 def test_pydantic_discriminator_still_distinguishes_blocks() -> None:

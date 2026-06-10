@@ -3,7 +3,7 @@
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 # =============================================================================
@@ -88,6 +88,92 @@ class SystemContent(_AnthropicBlockBase):
     text: str
 
 
+def _system_text_block(text: str) -> dict[str, Any]:
+    return {"type": "text", "text": text}
+
+
+def _system_blocks_from_content(content: Any) -> list[dict[str, Any]] | None:
+    """Return system text blocks when a client put system content in messages."""
+    if isinstance(content, str):
+        return [_system_text_block(content)]
+    if not isinstance(content, list):
+        return None
+
+    blocks: list[dict[str, Any]] = []
+    for block in content:
+        if isinstance(block, dict):
+            block_type = block.get("type")
+            text = block.get("text")
+            if block_type == "text" and isinstance(text, str):
+                blocks.append(dict(block))
+                continue
+        return None
+    return blocks
+
+
+def _plain_system_blocks(blocks: list[dict[str, Any]]) -> bool:
+    return all(set(block.keys()) == {"type", "text"} for block in blocks)
+
+
+def _system_blocks_text(blocks: list[dict[str, Any]]) -> str:
+    return "\n\n".join(block["text"] for block in blocks if block.get("text"))
+
+
+def _merge_system_content(
+    existing_system: Any, inline_blocks: list[dict[str, Any]]
+) -> Any:
+    if existing_system is None:
+        if _plain_system_blocks(inline_blocks):
+            return _system_blocks_text(inline_blocks)
+        return inline_blocks
+
+    if isinstance(existing_system, str):
+        if _plain_system_blocks(inline_blocks):
+            parts = [existing_system, _system_blocks_text(inline_blocks)]
+            return "\n\n".join(part for part in parts if part)
+        return [_system_text_block(existing_system), *inline_blocks]
+
+    if isinstance(existing_system, list):
+        return [*existing_system, *inline_blocks]
+
+    return existing_system
+
+
+def _normalize_inline_system_messages(data: Any) -> Any:
+    """Promote non-standard ``messages[].role == "system"`` into ``system``."""
+    if not isinstance(data, dict):
+        return data
+
+    messages = data.get("messages")
+    if not isinstance(messages, list):
+        return data
+
+    inline_blocks: list[dict[str, Any]] = []
+    normalized_messages: list[Any] = []
+    promoted = False
+    for message in messages:
+        if isinstance(message, dict) and message.get("role") == "system":
+            blocks = _system_blocks_from_content(message.get("content"))
+            if blocks is None:
+                normalized_messages.append(message)
+                continue
+            inline_blocks.extend(blocks)
+            promoted = True
+            continue
+        normalized_messages.append(message)
+
+    if not promoted:
+        return data
+
+    normalized = dict(data)
+    normalized["messages"] = normalized_messages
+    if inline_blocks:
+        normalized["system"] = _merge_system_content(
+            normalized.get("system"), inline_blocks
+        )
+    return normalized
+
+
 # =============================================================================
 # Message Types
 # =============================================================================
@@ -129,7 +215,14 @@ class ThinkingConfig(BaseModel):
 # =============================================================================
 # Request Models
 # =============================================================================
-class MessagesRequest(BaseModel):
+class _InlineSystemMessageNormalizer(BaseModel):
+    @model_validator(mode="before")
+    @classmethod
+    def _promote_inline_system_messages(cls, data: Any) -> Any:
+        return _normalize_inline_system_messages(data)
+
+
+class MessagesRequest(_InlineSystemMessageNormalizer):
     model_config = ConfigDict(extra="allow")
 
     model: str
@@ -157,7 +250,7 @@ class MessagesRequest(BaseModel):
     betas: list[str] | None = Field(default=None, exclude=True)
 
 
-class TokenCountRequest(BaseModel):
+class TokenCountRequest(_InlineSystemMessageNormalizer):
     model_config = ConfigDict(extra="allow")
 
     model: str

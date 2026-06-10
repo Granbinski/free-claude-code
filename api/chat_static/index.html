@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FCC Chat Local</title>
+    <link rel="stylesheet" href="/chat/assets/chat.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-row">
+          <div class="brand-mark">FC</div>
+          <div>
+            <h1>Chat Local</h1>
+            <p id="runtimeLabel">carregando</p>
+          </div>
+        </div>
+        <button id="newConversation" class="primary-action" type="button">
+          Nova conversa
+        </button>
+        <input
+          id="historySearch"
+          class="text-input"
+          placeholder="Buscar no historico"
+        />
+        <select id="projectFilter" class="text-input"></select>
+        <div id="conversationList" class="conversation-list"></div>
+      </aside>
+
+      <main class="chat-panel">
+        <header class="chat-header">
+          <input id="conversationTitle" class="title-input" value="Nova conversa" />
+          <select id="conversationProject" class="text-input"></select>
+          <input
+            id="conversationLabels"
+            class="text-input"
+            placeholder="etiquetas: estudo, codigo"
+          />
+          <button id="themeToggle" class="small-button" type="button">
+            Escuro
+          </button>
+          <button id="saveConversation" class="small-button" type="button">
+            Salvar
+          </button>
+          <button id="deleteConversation" class="small-button danger" type="button">
+            Excluir
+          </button>
+        </header>
+
+        <section id="messageList" class="message-list"></section>
+
+        <form id="composer" class="composer">
+          <textarea
+            id="messageInput"
+            rows="3"
+            placeholder="Escreva sua mensagem"
+          ></textarea>
+          <button id="stopButton" class="small-button danger" type="button" disabled>
+            Parar
+          </button>
+          <button id="sendButton" type="submit">Enviar</button>
+        </form>
+      </main>
+
+      <aside class="control-panel">
+        <div class="tabs">
+          <button class="tab active" data-tab="memory" type="button">Memorias</button>
+          <button class="tab" data-tab="prompts" type="button">Prompts</button>
+          <button class="tab" data-tab="files" type="button">Arquivos</button>
+          <button class="tab" data-tab="settings" type="button">Ajustes</button>
+        </div>
+
+        <section class="tab-view active" id="tab-memory">
+          <div class="section-heading">
+            <h2>Memoria da conversa</h2>
+            <button id="saveConversationMemory" class="small-button" type="button">
+              Salvar
+            </button>
+          </div>
+          <textarea
+            id="conversationMemory"
+            class="panel-textarea"
+            rows="5"
+            placeholder="Notas persistentes desta conversa"
+          ></textarea>
+          <div class="section-heading">
+            <h2>Memorias pessoais</h2>
+            <button id="addMemory" class="small-button" type="button">
+              Adicionar
+            </button>
+          </div>
+          <div id="memoryList" class="editor-list"></div>
+        </section>
+
+        <section class="tab-view" id="tab-prompts">
+          <div class="section-heading">
+            <h2>Prompts de personalizacao</h2>
+            <button id="addPrompt" class="small-button" type="button">
+              Adicionar
+            </button>
+          </div>
+          <div id="promptList" class="editor-list"></div>
+        </section>
+
+        <section class="tab-view" id="tab-files">
+          <div class="section-heading">
+            <h2>Anexos locais</h2>
+            <button id="attachFiles" class="small-button" type="button">
+              Anexar
+            </button>
+          </div>
+          <input id="fileInput" class="text-input" type="file" multiple />
+          <p class="path-label">
+            Arquivos sao lidos no navegador e salvos localmente nesta conversa.
+          </p>
+          <div id="attachmentList" class="editor-list"></div>
+        </section>
+
+        <section class="tab-view" id="tab-settings">
+          <label class="field-label" for="defaultSystemPrompt">
+            Prompt base
+          </label>
+          <textarea
+            id="defaultSystemPrompt"
+            class="panel-textarea"
+            rows="6"
+          ></textarea>
+
+          <label class="field-label" for="modelOverride">Modelo</label>
+          <input id="modelOverride" class="text-input" placeholder="usar padrao" />
+
+          <label class="field-label" for="historyLimit">Historico enviado</label>
+          <input
+            id="historyLimit"
+            class="text-input"
+            type="number"
+            min="1"
+            max="80"
+          />
+
+          <label class="check-row">
+            <input id="includePersonalMemories" type="checkbox" />
+            <span>Usar memorias pessoais</span>
+          </label>
+          <label class="check-row">
+            <input id="includeConversationMemory" type="checkbox" />
+            <span>Usar memoria da conversa</span>
+          </label>
+
+          <button id="saveSettings" class="primary-action" type="button">
+            Salvar ajustes
+          </button>
+          <p id="statePath" class="path-label"></p>
+        </section>
+      </aside>
+    </div>
+    <template id="messageTemplate">
+      <article class="message-row">
+        <div class="message-avatar"></div>
+        <div class="message-body">
+          <div class="message-meta"></div>
+          <div class="message-content"></div>
+        </div>
+      </article>
+    </template>
+    <template id="editorTemplate">
+      <article class="editor-item">
+        <div class="editor-top">
+          <input class="editor-title" />
+          <label class="mini-check">
+            <input class="editor-enabled" type="checkbox" />
+            <span>ativo</span>
+          </label>
+        </div>
+        <textarea class="editor-content" rows="5"></textarea>
+        <div class="editor-actions">
+          <button class="small-button editor-save" type="button">Salvar</button>
+          <button class="small-button danger editor-delete" type="button">
+            Excluir
+          </button>
+          <button class="small-button editor-activate" type="button">
+            Usar
+          </button>
+        </div>
+      </article>
+    </template>
+    <script src="/chat/assets/chat.js"></script>
+  </body>
+</html>

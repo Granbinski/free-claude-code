@@ -18,6 +18,7 @@ from core.trace import extract_claude_session_id_from_headers, trace_event
 from providers.exceptions import ProviderError
 
 from .admin_routes import router as admin_router
+from .chat_routes import router as chat_router
 from .routes import router
 from .runtime import AppRuntime, startup_failure_message
 from .validation_log import summarize_request_validation_body
@@ -111,6 +112,7 @@ def create_app(*, lifespan_enabled: bool = True) -> FastAPI:
 
     # Register routes
     app.include_router(admin_router)
+    app.include_router(chat_router)
     app.include_router(router)
 
     # Exception handlers
